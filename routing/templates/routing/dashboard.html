@@ -363,10 +363,33 @@
   <script>
     // Initialize Leaflet Map (Centered on USA)
     const map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 4);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+    // Base layers: ESRI World Street Map (high reliability, clean highways, no rate blocks) & OSM HOT
+    const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
-    }).addTo(map);
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; StreetMap'
+    });
+
+    const esriDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16,
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; Dark Canvas'
+    });
+
+    const osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      subdomains: ['a', 'b', 'c'],
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank" rel="noopener noreferrer">HOT</a>'
+    });
+
+    // Add ESRI Street as default (clean road network, zero 403 errors)
+    esriStreet.addTo(map);
+
+    // Layer switcher in top-right
+    L.control.layers({
+      "ESRI Street Map (Default)": esriStreet,
+      "ESRI Dark Canvas": esriDark,
+      "OpenStreetMap (HOT)": osmHot
+    }, null, { position: 'topright' }).addTo(map);
 
     let routeLayer = null;
     let markersLayer = L.layerGroup().addTo(map);
