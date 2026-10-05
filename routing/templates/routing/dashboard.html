@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotter Fuel Route Optimizer | Live Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .header-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      margin-left: 16px;
+      transition: color 0.2s;
+    }
+    .header-links a:hover { color: var(--primary); }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      width: 440px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .sidebar-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+    .presets {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      background: #374151;
+      color: #fff;
+      border-color: #4b5563;
+    }
+    .submit-btn {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .submit-btn:hover {
+      background: var(--primary-hover);
+    }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Results */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .metric-card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .metric-card.accent .metric-value { color: var(--accent); }
+    .metric-card.highlight .metric-value { color: #60a5fa; }
+
+    .accounting-box {
+      margin-top: 14px;
+      background: #1e1b4b;
+      border: 1px solid #3730a3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #c7d2fe;
+      line-height: 1.5;
+    }
+
+    .stops-section {
+      margin-top: 24px;
+    }
+    .stops-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stop-item {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .stop-item:hover {
+      border-color: var(--primary);
+      background: #252f40;
+    }
+    .stop-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .stop-name {
+      color: #fff;
+    }
+    .stop-price {
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .stop-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Map container */
+    #map {
+      flex: 1;
+      height: 100%;
+      background: #111;
+    }
+
+    .status-alert {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+    .status-alert.error {
+      background: #7f1d1d;
+      border: 1px solid var(--danger);
+      color: #fecaca;
+      display: block;
+    }
+
+    /* Custom Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      background: var(--card-bg) !important;
+      color: #fff !important;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .leaflet-popup-tip {
+      background: var(--card-bg) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-badge">SPOTTER</span>
+      <span class="brand-title">Fuel-Optimized Route Navigator</span>
+    </div>
+    <div class="header-links">
+      <a href="/api/route/" target="_blank">Browse REST API &rarr;</a>
+      <a href="https://github.com/ranatalhamajid1/spotter-fuel-route-optimizer" target="_blank">GitHub Repo &rarr;</a>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <div class="sidebar-content">
+        <form id="routeForm">
+          <div class="form-group">
+            <label for="startInput">Start Location (USA)</label>
+            <input type="text" id="startInput" value="New York, NY" required placeholder="e.g. New York, NY">
+          </div>
+          <div class="form-group">
+            <label for="finishInput">Finish Location (USA)</label>
+            <input type="text" id="finishInput" value="Los Angeles, CA" required placeholder="e.g. Los Angeles, CA">
+          </div>
+
+          <div class="presets">
+            <button type="button" class="preset-btn" onclick="setRoute('New York, NY', 'Los Angeles, CA')">NY &rarr; LA</button>
+            <button type="button" class="preset-btn" onclick="setRoute('Chicago, IL', 'Miami, FL')">Chicago &rarr; Miami</button>
+            <button type="button" class="preset-btn" onclick="setRoute('Seattle, WA', 'San Diego, CA')">Seattle &rarr; San Diego</button>
+            <button type="button" class="preset-btn" onclick="setRoute('New York, NY', 'Philadelphia, PA')">NY &rarr; Philly (&lt;500mi)</button>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span>Calculate Optimal Fuel Route</span>
+          </button>
+        </form>
+
+        <div id="errorAlert" class="status-alert"></div>
+
+        <div id="resultsPanel" style="display: none;">
+          <div class="metrics-grid">
+            <div class="metric-card highlight">
+              <div class="metric-label">Total Distance</div>
+              <div class="metric-value" id="valDistance">0 mi</div>
+            </div>
+            <div class="metric-card accent">
+              <div class="metric-label">Total Fuel Cost</div>
+              <div class="metric-value" id="valCost">$0.00</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Fuel Purchased</div>
+              <div class="metric-value" id="valPurchased">0 gal</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Fuel Consumed</div>
+              <div class="metric-value" id="valConsumed">0 gal</div>
+            </div>
+          </div>
+
+          <div class="accounting-box" id="accountingNote"></div>
+
+          <div class="stops-section">
+            <div class="stops-title">
+              <span>Optimal Fuel Stops</span>
+              <span id="stopsCountBadge" style="background:#374151; padding:2px 8px; border-radius:10px; font-size:11px;">0 stops</span>
+            </div>
+            <div id="stopsList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    // Initialize Leaflet Map (Centered on USA)
+    const map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    let routeLayer = null;
+    let markersLayer = L.layerGroup().addTo(map);
+    const stopMarkers = [];
+
+    function setRoute(start, finish) {
+      document.getElementById('startInput').value = start;
+      document.getElementById('finishInput').value = finish;
+      document.getElementById('routeForm').dispatchEvent(new Event('submit'));
+    }
+
+    document.getElementById('routeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const start = document.getElementById('startInput').value.trim();
+      const finish = document.getElementById('finishInput').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
+      const errorAlert = document.getElementById('errorAlert');
+      const resultsPanel = document.getElementById('resultsPanel');
+
+      errorAlert.className = 'status-alert';
+      errorAlert.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Calculating Route & Optimization...</span>';
+
+      try {
+        const response = await fetch('/api/route/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start, finish })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || (data.details ? JSON.stringify(data.details) : 'Failed to calculate route'));
+        }
+
+        renderResults(data);
+      } catch (err) {
+        errorAlert.className = 'status-alert error';
+        errorAlert.textContent = err.message;
+        resultsPanel.style.display = 'none';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Calculate Optimal Fuel Route</span>';
+      }
+    });
+
+    function renderResults(data) {
+      document.getElementById('resultsPanel').style.display = 'block';
+      const fp = data.fuel_plan;
+      const rt = data.route;
+
+      document.getElementById('valDistance').textContent = `${rt.distance_miles.toFixed(1)} mi`;
+      document.getElementById('valCost').textContent = `$${fp.total_fuel_cost.toFixed(2)}`;
+      document.getElementById('valPurchased').textContent = `${fp.total_fuel_purchased_gallons.toFixed(1)} gal`;
+      document.getElementById('valConsumed').textContent = `${fp.total_fuel_consumed_gallons.toFixed(1)} gal`;
+      document.getElementById('accountingNote').textContent = fp.assumptions_note;
+      document.getElementById('stopsCountBadge').textContent = `${fp.stops.length} stops`;
+
+      // Clear previous layers
+      if (routeLayer) map.removeLayer(routeLayer);
+      markersLayer.clearLayers();
+      stopMarkers.length = 0;
+
+      // Draw route polyline (GeoJSON coordinates are [lon, lat])
+      const latlngs = rt.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+      routeLayer = L.polyline(latlngs, {
+        color: '#2563eb',
+        weight: 5,
+        opacity: 0.85
+      }).addTo(map);
+
+      map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+
+      // Add Start & Finish Markers
+      const startCoord = latlngs[0];
+      const finishCoord = latlngs[latlngs.length - 1];
+
+      L.marker(startCoord, {
+        icon: L.divIcon({
+          html: `<div style="background:#10b981; color:#fff; font-weight:700; font-size:11px; padding:4px 8px; border-radius:12px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap;">START</div>`,
+          className: '',
+          iconAnchor: [24, 12]
+        })
+      }).addTo(markersLayer).bindPopup(`<b>Start</b>: ${data.request.start}`);
+
+      L.marker(finishCoord, {
+        icon: L.divIcon({
+          html: `<div style="background:#ef4444; color:#fff; font-weight:700; font-size:11px; padding:4px 8px; border-radius:12px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap;">FINISH</div>`,
+          className: '',
+          iconAnchor: [24, 12]
+        })
+      }).addTo(markersLayer).bindPopup(`<b>Finish</b>: ${data.request.finish}`);
+
+      // Render stops in sidebar and on map
+      const stopsList = document.getElementById('stopsList');
+      stopsList.innerHTML = '';
+
+      if (fp.stops.length === 0) {
+        stopsList.innerHTML = `<div style="padding:14px; text-align:center; color:#9ca3af; font-size:13px;">No refueling needed! The vehicle completes this route on its initial 50-gallon tank.</div>`;
+        return;
+      }
+
+      fp.stops.forEach((stop, idx) => {
+        // Map marker
+        const marker = L.marker([stop.latitude, stop.longitude], {
+          icon: L.divIcon({
+            html: `<div style="background:#f59e0b; color:#111827; font-weight:700; font-size:11px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4);">${stop.stop_number}</div>`,
+            className: '',
+            iconAnchor: [12, 12]
+          })
+        }).addTo(markersLayer);
+
+        const popupContent = `
+          <div style="font-size:13px; line-height:1.4;">
+            <div style="font-weight:700; color:#60a5fa; margin-bottom:4px;">Stop #${stop.stop_number}: ${stop.name}</div>
+            <div>${stop.city}, ${stop.state}</div>
+            <div style="margin-top:6px; font-weight:600; color:#10b981;">$${stop.price_per_gallon.toFixed(3)} / gal</div>
+            <div style="font-size:11px; color:#9ca3af; margin-top:4px;">
+              Bought: <b>${stop.fuel_purchased_gallons.toFixed(2)} gal</b> ($${stop.cost.toFixed(2)})<br>
+              Route Mile: <b>${stop.distance_from_start_miles.toFixed(1)} mi</b>
+            </div>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        stopMarkers.push(marker);
+
+        // Sidebar item
+        const item = document.createElement('div');
+        item.className = 'stop-item';
+        item.innerHTML = `
+          <div class="stop-header">
+            <span class="stop-name">#${stop.stop_number} ${stop.name}</span>
+            <span class="stop-price">$${stop.price_per_gallon.toFixed(3)}</span>
+          </div>
+          <div class="stop-sub">
+            <span>${stop.city}, ${stop.state} &bull; Mile ${stop.distance_from_start_miles.toFixed(1)}</span>
+            <span>+${stop.fuel_purchased_gallons.toFixed(1)} gal ($${stop.cost.toFixed(2)})</span>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          map.setView([stop.latitude, stop.longitude], 10, { animate: true });
+          marker.openPopup();
+        });
+        stopsList.appendChild(item);
+      });
+    }
+
+    // Trigger initial calculation on load
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('routeForm').dispatchEvent(new Event('submit'));
+    });
+  </script>
+</body>
+</html>

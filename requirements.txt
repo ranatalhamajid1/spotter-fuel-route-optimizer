@@ -1,0 +1,7 @@
+# Spotter Fuel Route Optimizer - Python Dependencies
+Django>=5.0,<6.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.3.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+dj-database-url>=2.1.0
